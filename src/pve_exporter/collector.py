@@ -202,11 +202,11 @@ class ClusterResourcesCollector:
             'cpu': GaugeMetricFamily(
                 'pve_cpu_usage_ratio',
                 'CPU usage (value between 0.0 and pve_cpu_usage_limit)',
-                labels=['id']),
+                labels=['id', 'node', 'type']),
             'maxcpu': GaugeMetricFamily(
                 'pve_cpu_usage_limit',
                 'Maximum allowed CPU usage',
-                labels=['id']),
+                labels=['id', 'node', 'type']),
             'uptime': GaugeMetricFamily(
                 'pve_uptime_seconds',
                 'Number of seconds since the last boot',
