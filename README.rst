@@ -236,7 +236,7 @@ Proxmox VE Configuration
 For security reasons it is essential to add a user with read-only access
 (PVEAuditor role) for the purpose of metrics collection.
 
-Refer to the  `Proxmox Documentation`_ for the several ways of creating a user. 
+Refer to the  `Proxmox Documentation`_ for the several ways of creating a user.
 Once created, assign the user the `/` path permission.
 
 Prometheus Configuration
@@ -296,3 +296,36 @@ Grafana Dashboards
 .. _`supports Let's Encrypt`: https://pve.proxmox.com/pve-docs/pve-admin-guide.html#sysadmin_certificate_management
 .. _`Proxmox Documentation`: https://pve.proxmox.com/pve-docs/pve-admin-guide.html#pveum_permission_management
 .. _`Proxmox via Prometheus by Pietro Saccardi`: https://grafana.com/grafana/dashboards/10347-proxmox-via-prometheus/
+
+
+Custom Metrics
+--------------
+
+You can add custom (static) metrics into the Notes section of Proxmox. These will be exported by this exporter.
+
+Go to Proxmox - Datacenter - Notes and click the Edit button. Add a Markdown header that says exactly
+``Prometheus metrics`` and a backtick-delimited (\`\`\`) block with the actual metrics.
+
+For example:
+
+.. code:: markdown
+
+    ## Prometheus metrics
+    ```
+    # These metrics are parsed by our prometheus-pve-exporter which
+    # expects the exact heading above
+
+    # HELP my_metric_bytes Whatever
+    # TYPE my_metric_bytes gauge
+    my_metric_bytes 350e9
+    ```
+
+converts into
+
+.. code::
+
+    # HELP my_metric_bytes Whatever
+    # TYPE my_metric_bytes gauge
+    my_metric_bytes{__source="Datacenter > Notes"} 3.5e+011
+
+in the exporter output.

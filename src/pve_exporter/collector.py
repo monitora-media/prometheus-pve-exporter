@@ -6,7 +6,10 @@ Prometheus collecters for Proxmox VE cluster.
 import collections
 import itertools
 import logging
+import re
 
+from prometheus_client.samples import Sample
+from prometheus_client.parser import text_string_to_metric_families
 from prometheus_client.registry import Collector
 from proxmoxer import ProxmoxAPI
 from proxmoxer.core import ResourceException
@@ -359,12 +362,42 @@ class VolumesCollector(Collector):
         return [disk_size]
 
 
+class ClusterCustomMetricsCollector(Collector):
+    """
+    Collects custom labels defined in the Notes section
+    """
+    def __init__(self, pve):
+        self._pve = pve
+
+    def collect(self):
+        metrics = []
+        notes = self._pve.cluster.options.get().get('description', '')
+        if m := re.match(r'#+\s*Prometheus metrics\s*```(.*?)```', notes, re.MULTILINE | re.DOTALL):
+            custom_metrics_text = m.group(1)
+
+            for metric in text_string_to_metric_families(custom_metrics_text):
+                metric.name = f'pve_{metric.name}'
+                new_samples = [
+                    Sample(name=f'pve_{sample.name}', labels=sample.labels | {'__source': 'Datacenter > Notes'},
+                           exemplar=sample.exemplar, value=sample.value)
+                    for sample in metric.samples
+                ]
+                metric.samples = new_samples
+
+                metrics.append(metric)
+
+        return metrics
+
+
 def collect_pve(config, host, options: CollectorsOptions):
     """Scrape a host and return prometheus text format for it"""
 
     pve = ProxmoxAPI(host, **config)
 
     registry = CollectorRegistry()
+
+    registry.register(ClusterCustomMetricsCollector(pve))
+
     if options.status:
         registry.register(StatusCollector(pve))
     if options.resources:
